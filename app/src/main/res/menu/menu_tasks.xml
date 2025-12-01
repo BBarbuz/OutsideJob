@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/action_tasks_all"
+        android:orderInCategory="100"
+        android:title="@string/action_tasks_all"
+        app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/action_tasks_new"
+        android:orderInCategory="100"
+        android:title="@string/action_tasks_new"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_tasks_completed"
+        android:orderInCategory="100"
+        android:title="@string/action_tasks_completed"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_tasks_overdue"
+        android:orderInCategory="100"
+        android:title="@string/action_tasks_overdue"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_tasks_suspended"
+        android:orderInCategory="100"
+        android:title="@string/action_tasks_suspended"
+        app:showAsAction="never" />
+
+</menu>
