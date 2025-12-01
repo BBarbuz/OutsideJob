@@ -1,0 +1,1045 @@
+\documentclass[12pt,a4paper,oneside]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[polish]{babel}
+\usepackage[margin=1in]{geometry}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{longtable}
+
+% Konfiguracja listingów dla Kotlin
+\lstdefinelanguage{Kotlin}{
+  comment=[l]{//},
+  commentstyle=\color{gray}\ttfamily,
+  emph={filter, map, fold, forEach, println, class, object, fun, val, var, if, else, when, for, in, while, return, true, false, null},
+  emphstyle=\color{blue}\bfseries,
+  identifierstyle=\color{black},
+  keywords={class, fun, val, var, object, interface, enum, package, import, as, is, in, where},
+  keywordstyle=\color{blue}\bfseries,
+  morecomment=[s]{/*}{*/},
+  morestring=[b]",
+  morestring=[s]{"""}{"""},
+  ndkeywords={@Composable, @Preview, @Entity, @PrimaryKey},
+  ndkeywordstyle=\color{purple}\bfseries,
+  sensitive=true,
+  stringstyle=\color{red},
+  breaklines=true,
+  showstringspaces=false,
+  tabsize=2,
+}
+
+\lstset{
+    language=Kotlin,
+    basicstyle=\ttfamily\small,
+    backgroundcolor=\color{gray!10},
+    frame=single,
+    framexleftmargin=5pt,
+    frameright=true,
+    framebottom=true,
+    framextopsep=5pt,
+    framesep=5pt,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    xleftmargin=20pt,
+}
+
+% Header i Footer
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{OutsideJob -- Specyfikacja Wymagań}
+\lhead{Android -- Aplikacja Terenowa}
+\cfoot{\thepage}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=blue,
+    urlcolor=blue,
+    bookmarksnumbered=true,
+}
+
+\title{\Large\textbf{OutsideJob\\ Specyfikacja Wymagań Funkcjonalnych i Niefunkcjonalnych\\ Aplikacja do Zarządzania Raportami Terenowymi}}
+\author{Dokumentacja Projektowa}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+\newpage
+
+% ============================================================================
+\section{Wstęp}
+% ============================================================================
+
+\subsection{Cel projektu}
+
+OutsideJob to platforma mobilna przeznaczona dla firm posiadających floty serwisantów i pracowników terenowych. Celem aplikacji jest umożliwienie prostego i jednolitego przeprowadzania raportów z podjętych zleceń (zadań) bezpośrednio z terenu, z możliwością offline-first i automatycznej synchronizacji po powrocie do internetu.
+
+\subsection{Zakres aplikacji}
+
+\begin{itemize}
+    \item Zarządzanie listą przydzielonych zadań (Tasks)
+    \item Tworzenie szczegółowych raportów z wykonanych zleceń
+    \item Wygenerowanie raportów w formatach wymaganych przez klienta (PDF, JSON, Excel itp.)
+    \item Praca offline z możliwością synchronizacji danych
+    \item Filtowanie i wyszukiwanie zadań
+    \item Zarządzanie załącznikami (zdjęcia, dokumenty)
+    \item Kontrola dostępu poprzez logowanie
+\end{itemize}
+
+\subsection{Adresaci i interesariusze}
+
+\begin{itemize}
+    \item \textbf{Pracownicy terenowi} (serwisanci, elektrycy, hydraulicy itp.) -- główni użytkownicy aplikacji
+    \item \textbf{Kierownicy pracowników} -- mogą przydzielać zadania
+    \item \textbf{Administratorzy OutsideJob} -- zarządzają użytkownikami i systemem
+    \item \textbf{Firmy-klienci} -- otrzymują raporty w wymaganych formatach
+\end{itemize}
+
+\subsection{Dokumenty referencyjne}
+
+\begin{itemize}
+    \item Architektura Synchronizacji Offline (osobny dokument)
+    \item API REST (specyfikacja endpoints)
+    \item Wytyczne UX/UI (wireframy/mockupy)
+\end{itemize}
+
+% ============================================================================
+\section{Wymagania funkcjonalne}
+% ============================================================================
+
+\subsection{REQ-F1: Autentykacja i logowanie}
+
+\textbf{Opis:} Użytkownik musi się zalogować do aplikacji za pomocą adresu e-mail i hasła otrzymanego od administratora OutsideJob.
+
+\begin{itemize}
+    \item REQ-F1.1: Ekran logowania zawiera pola: ``Email'', ``Hasło''
+    \item REQ-F1.2: Po wpisaniu niepoprawnych danych wyświetlane jest komunikat błędu
+    \item REQ-F1.3: Po zalogowaniu aplikacja synchronizuje listę zadań z serwerem
+\end{itemize}
+
+\textbf{Priorytet:} KRYTYCZNE
+
+\textbf{Aktor:} Pracownik terenowy
+
+---
+
+\subsection{REQ-F2: Zapamiętanie loginu i hasła}
+
+\textbf{Opis:} Użytkownik przy pierwszym logowaniu ma możliwość zapamiętania loginu i hasła dla automatycznego zalogowania przy kolejnych uruchomieniach aplikacji.
+
+\begin{itemize}
+    \item REQ-F2.1: Checkbox ``Zapamiętaj mnie'' dostępny na ekranie logowania
+    \item REQ-F2.2: Dane uwierzytelniające przechowywane lokalnie w \textbf{Android Keystore} (bezpieczne)
+    \item REQ-F2.3: Przy wylogowaniu dane usuwane z lokalnego magazynu
+    \item REQ-F2.4: Logowanie na innym urządzeniu powoduje wylogowanie na poprzednim
+\end{itemize}
+
+\textbf{Priorytet:} WYSOKI
+
+\textbf{Aktor:} Pracownik terenowy
+
+---
+
+\subsection{REQ-F3: Lista zadań (Tasks) po logowaniu}
+
+\textbf{Opis:} Po zalogowaniu użytkownik otrzymuje zsynchronizowaną listę zadań przydzielonych do niego.
+
+\begin{itemize}
+    \item REQ-F3.1: Lista zadań pobierana z serwera przy logowaniu
+    \item REQ-F3.2: Zadania sortowane po dacie utworzenia (najnowsze u góry)
+    \item REQ-F3.3: Każde zadanie wyświetla: tytuł, krótki opis, status, datę terminu
+    \item REQ-F3.4: Ikona statusu (kolor/ikonka) wskazuje stan: TODO, IN\_PROGRESS, COMPLETED, SUSPENDED, OVERDUE
+    \item REQ-F3.5: Możliwość kliknięcia w zadanie dla wyświetlenia całego zadania z przyciskami rozpocznij dojazd rozpocznij prace
+\end{itemize}
+
+\textbf{Priorytet:} KRYTYCZNE
+
+\textbf{Aktor:} Pracownik terenowy
+
+---
+
+\subsection{REQ-F4: Filtrowanie listy zadań}
+
+\textbf{Opis:} Użytkownik ma możliwość filtrowania zadań między kategoriami.
+
+\begin{itemize}
+    \item REQ-F4.1: Filtry dostępne w górnym menu (po prawej): ALL, TODO, IN\_PROGRESS, COMPLETED, SUSPENDED, OVERDUE
+    \item REQ-F4.2: Wybranie filtru powoduje przeliczenie listy lokalnie
+    \item REQ-F4.3: Aktualny filtr wyświetlany w nagłówku ekranu
+    \item REQ-F4.4: Preferencja ostatniego wybranego filtru przechowywana lokalnie
+    \item REQ-F4.5: Przy każdorazowym uruchomieniu aplikacji pracownik widzi filtr TODO
+    \item REQ-F4.6: Zadanie które nigdy nie wyło wyśweitlone (pracownik nigdy jeszce w niego nie kliknął nie widział szczegółów wyróżnia się kolorem jest jako new) ale stan pozostaje TODO
+\end{itemize}
+
+\textbf{Priorytet:} WYSOKI
+
+\textbf{Aktor:} Pracownik terenowy
+
+---
+
+\subsection{REQ-F5: Szczegóły zadania}
+
+\textbf{Opis:} Po wybraniu zadania z listy użytkownik widzi ekran ze szczegółami i możliwościami wykonania.
+
+\begin{itemize}
+    \item REQ-F5.1: Ekran zawiera: tytuł, pełny opis, termin, przydzielony pracownik, lokalizacja, załączniki
+    \item REQ-F5.2: Przycisk ``Rozpocznij dojazd'' -- zmienia status na IN\_TRANSIT
+    \item REQ-F5.3: Przycisk ``Rozpocznij pracę'' -- zmienia status na IN\_PROGRESS
+    \item REQ-F5.4: Przycisk ``Wstrzymaj'' -- zmienia status na SUSPENDED (wymaga opisu) tylko w stanie IN\_PROGRESS lub IN\_TRANSIT
+    \item REQ-F5.5: Przycisk ``Wznów'' -- powrót do IN\_PROGRESS (dostępny tylko ze stanu SUSPENDED)
+\end{itemize}
+
+\textbf{Priorytet:} KRYTYCZNE
+
+\textbf{Aktor:} Pracownik terenowy
+
+---
+
+\subsection{REQ-F6: Rozpoczęcie dojazdu}
+
+\textbf{Opis:} Pracownik może rozpocząć dojazd do lokalizacji zadania, zmienia status na IN\_TRANSIT.
+
+\begin{itemize}
+    \item REQ-F6.1: Przycisk ``Rozpocznij dojazd'' zmienia status z TODO na IN\_TRANSIT
+\end{itemize}
+
+\textbf{Priorytet:} WYSOKI
+
+\textbf{Aktor:} Pracownik terenowy
+
+---
+
+\subsection{REQ-F7: Rozpoczęcie pracy nad zadaniem}
+
+\textbf{Opis:} Pracownik rozpoczyna pracę nad zadaniem, zmienia status na IN\_PROGRESS, otwiera się checklist zadań.
+
+\begin{itemize}
+    \item REQ-F7.1: Przycisk ``Rozpocznij pracę'' zmienia status na IN\_PROGRESS
+    \item REQ-F7.2: Wyświetla się lista podzadań (cały formularz raportowania) z checkboxami
+    \item REQ-F7.3: Każde podzadanie może mieć opis, typ (checkbox, tekstowe pole, zdjęcie)
+    \item REQ-F7.4: Jedno kliknięcie na podzadanie otwiera klawiaturę dla szybkiego wprowadzenia tekstu
+    \item REQ-F7.5: Pracownik nie może mieć więcej niż jedno zlecenie o statusie IN\_PROGRESS oraz IN\_TRANSIT
+\end{itemize}
+
+\textbf{Priorytet:} KRYTYCZNE
+
+\textbf{Aktor:} Pracownik terenowy
+
+---
+
+\subsection{REQ-F8: Wstrzymanie zadania (SUSPENDED)}
+
+\textbf{Opis:} Pracownik może wstrzymać zadanie (np. oczekiwanie na części, przerwa), wymaga uzasadnienia.
+
+\begin{itemize}
+    \item REQ-F8.1: Przycisk ``Wstrzymaj'' dostępny ze stanu IN\_PROGRESS lub IN\_TRANSIT
+    \item REQ-F8.2: Formularz zawiera pola dostosowane do konkretnego klienta (np. wymiana przedmiotów, wykonanie zdjęć)
+    \item REQ-F8.3: Wyświetla się dialog z polem tekstowym ``Powód wstrzymania''
+    \item REQ-F8.4: Pole obowiązkowe -- bez powodu nie można wstrzymać
+    \item REQ-F8.5: Status zmienia się na SUSPENDED
+    \item REQ-F8.6: Przycisk ``Wznów pracę'' powraca do IN\_PROGRESS
+    \item REQ-F8.7: Historia wstrzymań przechowywana w raporcie
+\end{itemize}
+
+\textbf{Priorytet:} WYSOKI
+
+\textbf{Aktor:} Pracownik terenowy
+
+---
+
+\subsection{REQ-F9: Rozliczenie pracy (Completion)}
+
+\textbf{Opis:} Pracownik kończy pracę, podaje ostateczny raport, zmienia status na COMPLETED.
+
+\begin{itemize}
+    \item REQ-F9.1: Przycisk ``Zakończ pracę'' sprawdza czy wszystkie obowiązkowe pola zostały uzupełnione jeżeli tak to zamyka zlecenie i zmienia status na COMPLETED
+    \item REQ-F9.2: PO zakończeniu pracy brak mozliwości edycji jakichkolwiek pól
+    \item REQ-F9.3: Po potwierdzeniu -- upload raportów/zdjęć i zmiana statusu na COMPLETED
+    \item REQ-F9.4: Zadanie trafia do historii, nie można go edytować
+\end{itemize}
+
+\textbf{Priorytet:} KRYTYCZNE
+
+\textbf{Aktor:} Pracownik terenowy
+
+---
+
+\subsection{REQ-F10: Dodawanie zadania (jeśli wymaga klient)}
+
+\textbf{Opis:} Pracownik (lub kierownik) może dodać nowe zadanie do swojej listy.
+
+\begin{itemize}
+    \item REQ-F10.1: Zakładka ``+ Dodaj zadanie'' w navigation drawer
+    \item REQ-F10.2: Formularz zawiera: tytuł, opis, lokalizacja, termin, przydzielenie do pracownika
+    \item REQ-F10.3: Jeśli pracownik -- zawsze przydzielane sobie
+    \item REQ-F10.4: Jeśli kierownik -- może wybrać pracownika z listy
+    \item REQ-F10.5: Zadanie tworzone TYLKO online
+    \item REQ-F10.6: Po utworzeniu -- serwer generuje ID, synchronizuje się na urządzenia
+\end{itemize}
+
+\textbf{Priorytet:} ŚREDNI
+
+\textbf{Aktor:} Pracownik terenowy, Kierownik
+
+---
+
+\subsection{REQ-F11: Logout}
+
+\textbf{Opis:} Użytkownik może się wylogować z aplikacji.
+
+\begin{itemize}
+    \item REQ-F11.1: Opcja ``Wyloguj'' w navigation drawer (dół, po lewej)
+    \item REQ-F11.2: Po wylogowaniu -- usuwane zapamiętane dane logowania (jeśli były)
+    \item REQ-F11.3: Powrót do ekranu logowania
+    \item REQ-F11.4: Lokalne dane zadań pozostają (offline-first), ale logowanie na innym urządzeniu tę sesję wyłącza
+\end{itemize}
+
+\textbf{Priorytet:} WYSOKI
+
+\textbf{Aktor:} Pracownik terenowy
+
+---
+
+\subsection{REQ-F12: Dodawanie załączników (Zdjęcia, Notatki)}
+
+\textbf{Opis:} Pracownik może dodawać zdjęcia, notatki głosowe, dokumenty do zadania.
+
+\begin{itemize}
+    \item REQ-F12.1: Przycisk ``+ Dodaj zdjęcie'' w ekranie pracy
+    \item REQ-F12.2: Możliwość robienia zdjęcia bezpośrednio lub wybrania z galerii
+    \item REQ-F12.3: Zdjęcia przechowywane lokalnie, uploaded przy zatwierdzeniu zadania
+    \item REQ-F12.4: Pole notatek dla każdego podzadania
+    \item REQ-F12.5: Notatki głosowe (opcjonalnie) -- nagranie i transkrypcja
+\end{itemize}
+
+\textbf{Priorytet:} WYSOKI
+
+\textbf{Aktor:} Pracownik terenowy
+
+---
+
+\subsection{REQ-F13: Interfejs użytkownika (UI Layout)}
+
+\textbf{Opis:} Struktura ekranów i nawigacji aplikacji.
+
+\begin{itemize}
+    \item REQ-F13.1: Navigation Drawer po lewej stronie (``Tasks'', ``+ Add Task'', ``Wyloguj'')
+    \item REQ-F13.2: Góry ekran - toolbar z: ikoną menu (hamburger), tytułem, ikoną filtrów
+    \item REQ-F13.3: Menu filtrów po prawej w toolbarze (ALL, TODO, IN\_PROGRESS, COMPLETED, SUSPENDED, OVERDUE)
+    \item REQ-F13.4: Bottom sheet z szybkimi akcjami (jeśli potrzebne)
+    \item REQ-F13.5: FAB (Floating Action Button) ``+'' dla szybkiego dodania zadania
+\end{itemize}
+
+\textbf{Priorytet:} ŚREDNI
+
+\textbf{Aktor:} Pracownik terenowy
+
+---
+
+\subsection{REQ-F14: Synchronizacja danych}
+
+\textbf{Opis:} Dane synchronizują się automatycznie i ręcznie.
+
+\begin{itemize}
+    \item REQ-F14.1: Automatyczna synchronizacja co 15 minut (jeśli są zmiany)
+    \item REQ-F14.2: Ręczna synchronizacja -- przciągnięcie listy w dół (pull-to-refresh)
+    \item REQ-F14.3: Po powrocie internetu -- automatyczna synchronizacja pending zmian
+    \item REQ-F14.4: Powiadomienie o sukcesie/błędzie synchronizacji
+    \item REQ-F14.5: Brak konfliktów (zadania zakończone niezmienne)
+\end{itemize}
+
+\textbf{Priorytet:} KRYTYCZNE
+
+\textbf{Aktor:} System
+
+---
+
+% ============================================================================
+\section{Wymagania niefunkcjonalne}
+% ============================================================================
+
+\subsection{NFR-1: Wydajność i skalowalność}
+
+\begin{itemize}
+    \item NFR-1.1: Minimalna obsługa 50 użytkowników równolegle
+    \item NFR-1.2: Czas ładowania listy zadań: < 2 sekundy (gdy online)
+    \item NFR-1.3: Czas otwarcia szczegółów zadania: < 1 sekunda
+    \item NFR-1.4: Maksymalnie 100 zadań na liście bez lag'ów
+    \item NFR-1.5: Architektura skalowalna do 1000+ użytkowników w przyszłości
+\end{itemize}
+
+---
+
+\subsection{NFR-2: Bezpieczeństwo}
+
+\begin{itemize}
+    \item NFR-2.1: Cała komunikacja przez HTTPS (TLS 1.2+)
+    \item NFR-2.2: Hasła przechowywane haszowane (bcrypt/Argon2) na serwerze
+    \item NFR-2.3: Dane zapamiętane na urządzeniu w Android Keystore (szyfrowane)
+    \item NFR-2.4: Logowanie z poziomu administratora możliwe dla audytu
+    \item NFR-2.5: Raporty zawierają dane pełne tylko dla autoryzowanych osób
+\end{itemize}
+
+---
+
+\subsection{NFR-3: Dostępność i niezawodność}
+
+\begin{itemize}
+    \item NFR-3.1: Wysoka dostępność (HA) 24/7 -- SLA 99.5\%
+    \item NFR-3.2: Backend w architekturze multi-region (ang. failover)
+    \item NFR-3.3: Backup danych co 6 godzin
+    \item NFR-3.4: Recovery Time Objective (RTO): < 1 godzina
+    \item NFR-3.5: Recovery Point Objective (RPO): < 15 minut
+\end{itemize}
+
+---
+
+\subsection{NFR-4: Offline-first}
+
+\begin{itemize}
+    \item NFR-4.1: Wszystkie dane przechowywane lokalnie w Room (SQLite)
+    \item NFR-4.2: Pracownik może pracować 100\% offline
+    \item NFR-4.3: Synchronizacja dwukierunkowa (push/pull)
+    \item NFR-4.4: Brak konfliktów dla zamkniętych zadań
+    \item NFR-4.5: Offline-first = dane najpierw lokalnie, potem serwer
+\end{itemize}
+
+---
+
+\subsection{NFR-5: Kompatybilność}
+
+\begin{itemize}
+    \item NFR-5.1: Android 7.0 (API 24) minimum
+    \item NFR-5.2: Obsługa ekranów od 4.5'' do 6.7''
+    \item NFR-5.3: Orientacja portrait i landscape
+    \item NFR-5.4: Obsługa różnych DPI (mdpi, hdpi, xhdpi, xxhdpi)
+    \item NFR-5.5: Testowanie na minimalnie 5 popularnychmodelach urządzeń
+\end{itemize}
+
+---
+
+\subsection{NFR-6: Responsywność i UX}
+
+\begin{itemize}
+    \item NFR-6.1: Szybka reakcja na interakcje użytkownika (< 300ms)
+    \item NFR-6.2: Animacje płynne (60 FPS)
+    \item NFR-6.3: Material Design 3 lub nowszy
+    \item NFR-6.4: Dostępność (A11y) -- obsługa czytników ekranu
+    \item NFR-6.5: Kontrast tekstu minimum 4.5:1
+\end{itemize}
+
+---
+
+\subsection{NFR-7: Observability i monitoring}
+
+\begin{itemize}
+    \item NFR-7.1: Centralne logowanie (np. ELK, Datadog)
+    \item NFR-7.2: Monitoring wydajności backend'u (APM)
+    \item NFR-7.3: Alerty na błędy i anomalie
+    \item NFR-7.4: Dashboards dla: liczba aktywnych użytkowników, czas odpowiedzi API, błędy
+\end{itemize}
+
+---
+
+% ============================================================================
+\section{Przypadki użycia (Use Cases)}
+% ============================================================================
+
+\subsection{UC-1: Zalogowanie pracownika}
+
+\textbf{Aktor:} Pracownik terenowy
+
+\textbf{Warunki początkowe:} Aplikacja zainstalowana, użytkownik posiada e-mail i hasło od administratora
+
+\textbf{Główny przepływ:}
+
+\begin{enumerate}
+    \item Pracownik uruchamia aplikację
+    \item System wyświetla ekran logowania
+    \item Pracownik wpisuje e-mail i hasło
+    \item Pracownik opcjonalnie zaznacza ``Zapamiętaj mnie''
+    \item Pracownik klika ``Zaloguj''
+    \item System łączy się z serwerem i weryfikuje dane
+    \item Po sukcesie -- pobiera listę zadań
+    \item Aplikacja wyświetla listę Tasks
+\end{enumerate}
+
+\textbf{Alternatywne przepływy:}
+
+\begin{itemize}
+    \item A1: Niepoprawne hasło -- wyświetlany komunikat błędu, pracownik może spróbować ponownie
+    \item A2: Brak internetu -- jeśli były poprzednie dane zapamiętane, system zaloguje offline
+    \item A3: E-mail nie istnieje -- komunikat ``Użytkownik nie znaleziony''
+\end{enumerate}
+
+\textbf{Warunki końcowe:} Pracownik zalogowany, lista zadań widoczna
+
+---
+
+\subsection{UC-2: Przeglądanie listy zadań}
+
+\textbf{Aktor:} Pracownik terenowy
+
+\textbf{Warunki początkowe:} Pracownik zalogowany
+
+\textbf{Główny przepływ:}
+
+\begin{enumerate}
+    \item System wyświetla listę wszystkich przydzielonych zadań
+    \item Pracownik widzi: tytuł, krótki opis, status, datę terminu
+    \item Pracownik może przewijać listę
+    \item Pracownik klika na jedno z zadań
+    \item System otwiera szczegóły zadania
+\end{enumerate}
+
+\textbf{Alternatywne przepływy:}
+
+\begin{itemize}
+    \item A1: Brak zadań -- wyświetlany komunikat ``Brak przydzielonych zadań''
+    \item A2: Pracownik filtruje zadania (TODO, COMPLETED, SUSPENDED)
+    \item A3: Pull-to-refresh -- ręczna synchronizacja z serwerem
+\end{itemize}
+
+\textbf{Warunki końcowe:} Lista zadań wyświetlona lub szczegóły zadania otwarte
+
+---
+
+\subsection{UC-3: Rozpoczęcie pracy nad zadaniem}
+
+\textbf{Aktor:} Pracownik terenowy
+
+\textbf{Warunki początkowe:} Pracownik wybrał zadanie ze statusem TODO lub IN\_TRANSIT
+
+\textbf{Główny przepływ:}
+
+\begin{enumerate}
+    \item System wyświetla szczegóły zadania
+    \item Pracownik klika ``Rozpocznij pracę''
+    \item Status zmienia się na IN\_PROGRESS
+    \item System wyświetla listę podzadań (checklist)
+    \item Pracownik wykonuje podzadania, zaznacza checkboxy
+    \item Pracownik dodaje notatki/zdjęcia
+    \item Po zakończeniu -- pracownik klika ``Zakończ pracę''
+\end{enumerate}
+
+\textbf{Alternatywne przepływy:}
+
+\begin{itemize}
+    \item A1: Pracownik wstrzymuje zadanie -- przycisk ``Wstrzymaj'' z uzasadnieniem
+    \item A2: Pracownik pracuje offline -- zmiany przechowywane lokalnie
+\end{itemize}
+
+\textbf{Warunki końcowe:} Status zmieniony na IN\_PROGRESS, lub SUSPENDED, lub COMPLETED
+
+---
+
+\subsection{UC-4: Wstrzymanie zadania}
+
+\textbf{Aktor:} Pracownik terenowy
+
+\textbf{Warunki początkowe:} Pracownik w stanie IN\_PROGRESS
+
+\textbf{Główny przepływ:}
+
+\begin{enumerate}
+    \item Pracownik klika ``Wstrzymaj''
+    \item System wyświetla dialog z polem ``Powód wstrzymania''
+    \item Pracownik wpisuje powód (obowiązkowe)
+    \item Pracownik klika ``Wstrzymaj''
+    \item Status zmienia się na SUSPENDED
+    \item System zapisuje zmianę lokalnie, odkłada do synchronizacji
+\end{enumerate}
+
+\textbf{Warunki końcowe:} Status SUSPENDED, powód wstrzymania zapisany
+
+---
+
+\subsection{UC-5: Rozliczenie pracy}
+
+\textbf{Aktor:} Pracownik terenowy
+
+\textbf{Warunki początkowe:} Pracownik w stanie IN\_PROGRESS, praca skończona
+
+\textbf{Główny przepływ:}
+
+\begin{enumerate}
+    \item Pracownik klika ``Zakończ pracę''
+    \item System sprawdza formularz raportu (dostosowany do klienta) czy zawiera wszystekie obowiązkowe punkty
+    \item Pracownik klika ``Potwierdź''/``Wyślij''
+    \item System uploaduje załączniki (jeśli online) i zmienia status na COMPLETED
+    \item Powiadomienie ``Zadanie zostało rozliczone''
+\end{enumerate}
+
+\textbf{Alternatywne przepływy:}
+
+\begin{itemize}
+    \item A1: Offline -- plik raportów zapisany lokalnie, upload po powrocie internetu
+    \item A2: Brak wymaganych pól -- komunikat błędu, pracownik uzupełnia
+\end{itemize}
+
+\textbf{Warunki końcowe:} Status COMPLETED, raport zapisany na serwerze, zadanie niezmienne
+
+---
+
+% ============================================================================
+\section{Scenariusze testowe}
+% ============================================================================
+
+\subsection{ST-1: Logowanie online}
+
+\begin{enumerate}
+    \item Pracownik uruchamia aplikację
+    \item Wpisuje e-mail i hasło
+    \item Zaznacza ``Zapamiętaj mnie''
+    \item Klika ``Zaloguj''
+    \item \checkmark Aplikacja zalogowana, lista zadań pobrana
+\end{enumerate}
+
+---
+
+\subsection{ST-2: Auto-logowanie}
+
+\begin{enumerate}
+    \item Pracownik w poprzedniej sesji zaznaczył ``Zapamiętaj mnie''
+    \item Pracownik uruchamia aplikację (2. raz)
+    \item \checkmark Aplikacja automatycznie zalogowana bez wpisywania danych
+\end{enumerate}
+
+---
+
+\subsection{ST-3: Praca offline}
+
+\begin{enumerate}
+    \item Pracownik zalogowany, ma listę zadań
+    \item Wyłącz internet (Airplane Mode)
+    \item Pracownik otwiera zadanie
+    \item Zmienia status na IN\_PROGRESS
+    \item Dodaje checkboxy, notatki, zdjęcia
+    \item Kończy zadanie (COMPLETED)
+    \item \checkmark Wszystkie operacje działają offline
+    \item Włącz internet
+    \item \checkmark Zmiany automatycznie synchronizują się
+\end{enumerate}
+
+---
+
+\subsection{ST-4: Filtrowanie zadań}
+
+\begin{enumerate}
+    \item Pracownik w liście zadań
+    \item Klika filtr ``COMPLETED''
+    \item \checkmark Lista wyświetla tylko ukończone zadania
+    \item Klika filtr ``SUSPENDED''
+    \item \checkmark Lista wyświetla tylko wstrzymane zadania
+\end{enumerate}
+
+---
+
+\subsection{ST-5: Wstrzymanie z powodem}
+
+\begin{enumerate}
+    \item Pracownik w IN\_PROGRESS
+    \item Klika ``Wstrzymaj''
+    \item Dialog pojawia się
+    \item Pracownik NIE wpisuje powodu i klika ``Wstrzymaj''
+    \item \checkmark System wyświetla błąd ``Pole obowiązkowe''
+    \item Pracownik wpisuje powód
+    \item \checkmark Status zmienia się na SUSPENDED
+\end{enumerate}
+
+---
+
+\subsection{ST-6: Rozliczenie z zdjęciami (offline + online)}
+
+\begin{enumerate}
+    \item Pracownik offline
+    \item Kończy pracę, klika ``Zakończ pracę''
+    \item Dodaje opisany raport, wymagane zdjęcia
+    \item Klika ``Potwierdź''
+    \item \checkmark Raport zapisany lokalnie, status COMPLETED
+    \item Włącz internet
+    \item \checkmark Zdjęcia i raport automatycznie uploadują się
+\end{enumerate}
+
+---
+
+% ============================================================================
+\section{Model domenowy i słownik pojęć}
+% ============================================================================
+
+\subsection{Kluczowe terminy}
+
+\begin{itemize}
+    \item \textbf{Task (Zadanie)} -- jednostka pracy przydzielona pracownikowi, zawiera opis, deadline, lokalizację
+    \item \textbf{Subtask (Podzadanie)} -- element checklist'u w ramach Task'u
+    \item \textbf{Worker (Pracownik)} -- użytkownik aplikacji, osoba terenowa
+    \item \textbf{Manager (Kierownik)} -- przełożony pracownika, może przydzielać zadania
+    \item \textbf{Administrator} -- osoba z OutsideJob, zarządza użytkownikami i systemem
+    \item \textbf{Report (Raport)} -- dokument podsumowujący wykonane zadanie (PDF, JSON, Excel)
+    \item \textbf{Status} -- stan zadania: TODO, IN\_TRANSIT, IN\_PROGRESS, SUSPENDED, COMPLETED
+    \item \textbf{Synchronizacja} -- dwukierunkowa wymiana danych między urządzeniem a serwerem
+    \item \textbf{Offline-first} -- dane najpierw przechowywane lokalnie, synchronizacja gdy internet dostępny
+    \item \textbf{Sesja} -- okres zalogowania użytkownika, wygasająca po wylogowaniu lub zalogowaniu użytkownika na innym urządzeniu bądź po 7 dniach braku aktywności
+\end{itemize}
+
+---
+
+% ============================================================================
+\section{Architektura systemu}
+% ============================================================================
+
+\subsection{Komponenty systemu}
+
+\begin{verbatim}
+┌────────────────────────────────────┐
+│   Android App (OutsideJob)         │
+│   ─────────────────────────────    │
+│   - UI Layer (Fragments, Compose)  │
+│   - ViewModel Layer                │
+│   - Repository Layer               │
+│   - Local DB (Room/SQLite)         │
+│   - WorkManager (Sync)             │
+└────────┬─────────────────────────┘
+         │ (HTTPS REST API)
+         ↓
+┌────────────────────────────────────┐
+│   Backend Server                   │
+│   ─────────────────────────────    │
+│   - Authentication Service         │
+│   - Task Management Service        │
+│   - Report Generation Service      │
+│   - Sync Service                   │
+│   - PostgreSQL Database            │
+│   - File Storage (S3/GCS)          │
+└────────────────────────────────────┘
+\end{verbatim}
+
+\subsection{Przepływ danych}
+
+\begin{enumerate}
+    \item Pracownik uruchamia aplikację
+    \item Loguje się (email + password)
+    \item Aplikacja pobiera listę Task'ów z serwera
+    \item Task'i przechowywane w Room (SQLite)
+    \item Pracownik pracuje offline (zmiany lokalnie)
+    \item Po powrocie internetu -- WorkManager synchronizuje zmiany
+    \item Raport uploadowany do serwera
+    \item Serwer generuje raporty w różnych formatach
+\end{enumerate}
+
+---
+
+% ============================================================================
+\section{Model danych (ERD)}
+% ============================================================================
+
+\subsection{Tabela Users}
+
+\begin{lstlisting}[language=SQL]
+CREATE TABLE users (
+    id BIGSERIAL PRIMARY KEY,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    first_name VARCHAR(100),
+    last_name VARCHAR(100),
+    role VARCHAR(50) DEFAULT 'WORKER',  -- WORKER, MANAGER, ADMIN
+    company_id BIGINT NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+    last_login TIMESTAMP,
+    FOREIGN KEY (company_id) REFERENCES companies(id)
+);
+\end{lstlisting}
+
+\subsection{Tabela Tasks}
+
+\begin{lstlisting}[language=SQL]
+CREATE TABLE tasks (
+    id BIGSERIAL PRIMARY KEY,
+    display_id VARCHAR(20) UNIQUE NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    assigned_to BIGINT NOT NULL,
+    created_by BIGINT NOT NULL,
+    status VARCHAR(50) DEFAULT 'TODO',
+    -- TODO, IN_TRANSIT, IN_PROGRESS, SUSPENDED, COMPLETED
+    due_date TIMESTAMP,
+    location_lat DECIMAL(10, 8),
+    location_lng DECIMAL(11, 8),
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+    completed_at TIMESTAMP,
+    FOREIGN KEY (assigned_to) REFERENCES users(id),
+    FOREIGN KEY (created_by) REFERENCES users(id)
+);
+\end{lstlisting}
+
+\subsection{Tabela Subtasks}
+
+\begin{lstlisting}[language=SQL]
+CREATE TABLE subtasks (
+    id BIGSERIAL PRIMARY KEY,
+    task_id BIGINT NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    type VARCHAR(50),  -- CHECKBOX, TEXT, PHOTO, NOTES
+    completed BOOLEAN DEFAULT FALSE,
+    completed_at TIMESTAMP,
+    FOREIGN KEY (task_id) REFERENCES tasks(id)
+);
+\end{lstlisting}
+
+\subsection{Tabela Reports}
+
+\begin{lstlisting}[language=SQL]
+CREATE TABLE reports (
+    id BIGSERIAL PRIMARY KEY,
+    task_id BIGINT UNIQUE NOT NULL,
+    worker_id BIGINT NOT NULL,
+    description TEXT,
+    duration_minutes INT,
+    signature_base64 TEXT,
+    status VARCHAR(50) DEFAULT 'DRAFT',
+    -- DRAFT, SUBMITTED, APPROVED, REJECTED
+    created_at TIMESTAMP DEFAULT NOW(),
+    submitted_at TIMESTAMP,
+    FOREIGN KEY (task_id) REFERENCES tasks(id),
+    FOREIGN KEY (worker_id) REFERENCES users(id)
+);
+\end{lstlisting}
+
+\subsection{Tabela Attachments}
+
+\begin{lstlisting}[language=SQL]
+CREATE TABLE attachments (
+    id BIGSERIAL PRIMARY KEY,
+    task_id BIGINT NOT NULL,
+    file_path VARCHAR(255),
+    file_type VARCHAR(50),  -- PHOTO, PDF, DOCUMENT
+    uploaded_at TIMESTAMP DEFAULT NOW(),
+    FOREIGN KEY (task_id) REFERENCES tasks(id)
+);
+\end{lstlisting}
+
+\subsection{Tabela Suspensions}
+
+\begin{lstlisting}[language=SQL]
+CREATE TABLE suspensions (
+    id BIGSERIAL PRIMARY KEY,
+    task_id BIGINT NOT NULL,
+    reason TEXT NOT NULL,
+    suspended_at TIMESTAMP DEFAULT NOW(),
+    resumed_at TIMESTAMP,
+    FOREIGN KEY (task_id) REFERENCES tasks(id)
+);
+\end{lstlisting}
+
+---
+
+% ============================================================================
+\section{Interfejs użytkownika (UI/UX)}
+% ============================================================================
+
+\subsection{Główne ekrany}
+
+\begin{enumerate}
+    \item \textbf{Ekran logowania} -- email, password, checkbox ``Zapamiętaj mnie'', przycisk ``Zaloguj''
+    \item \textbf{Lista zadań} -- liste Tasks z filtrami (ALL, TODO, IN\_PROGRESS, COMPLETED, SUSPENDED, OVERDUE), pull-to-refresh
+    \item \textbf{Szczegóły zadania} -- informacje, przyciski akcji (Rozpocznij dojazd, Rozpocznij pracę)
+    \item \textbf{Ekran pracy} -- checklist podzadań, pola tekstowe, przycisk dodania zdjęcia, Zakończ, Wstrzymaj
+    \item \textbf{Podekran pracy} -- szczegółowy ekran z polami w zależności od potrzeb klienta projektowany indywidualnie
+    \item \textbf{Navigation Drawer} -- Tasks, + Add Task, Profile, Wyloguj
+\end{enumerate}
+
+\subsection{Wytyczne designu}
+
+\begin{itemize}
+    \item Material Design 3
+    \item Kolory: Primary (Teal #2196F3), Secondary (Gray), Error (Red)
+    \item Typography: Roboto (system font)
+    \item Spacing: 8px, 16px, 24px
+    \item Icons: Material Icons
+    \item Accessibility: WCAG 2.1 AA standard
+\end{itemize}
+
+---
+
+% ============================================================================
+\section{Integracje}
+% ============================================================================
+
+\subsection{Firebase (opcjonalnie)}
+
+\begin{itemize}
+    \item Push notifications
+    \item Crash reporting
+    \item Analytics
+\end{itemize}
+
+
+---
+
+% ============================================================================
+\section{Plan testów}
+% ============================================================================
+
+\subsection{Testy funkcjonalne}
+
+\begin{itemize}
+    \item Logowanie (poprawne i niepoprawne dane)
+    \item Zapamiętanie hasła
+    \item Przeglądanie listy zadań
+    \item Filtrowanie
+    \item Rozpoczęcie pracy
+    \item Wstrzymanie z powodem
+    \item Rozliczenie pracy
+    \item Synchronizacja danych
+\end{itemize}
+
+\subsection{Testy offline}
+
+\begin{itemize}
+    \item Praca bez internetu
+    \item Synchronizacja po powrocie internetu
+    \item Brak konfliktów
+\end{itemize}
+
+\subsection{Testy wydajności}
+
+\begin{itemize}
+    \item Ładowanie listy 100 zadań
+    \item Responsywność UI
+    \item Zużycie baterii i pamięci
+    \item Upload dużych zdjęć
+\end{itemize}
+
+\subsection{Testy bezpieczeństwa}
+
+\begin{itemize}
+    \item Szyfrowanie danych w spoczynku i w ruchu
+    \item Wygasanie sesji
+    \item Logowanie do Keystore
+\end{itemize}
+
+---
+
+% ============================================================================
+\section{Wytyczne kodowania i konwencje}
+% ============================================================================
+
+\subsection{Język programowania}
+
+\begin{itemize}
+    \item Kotlin (główny) dla Android App
+    \item Java / Kotlin dla Backend'u
+    \item TypeScript (opcjonalnie) dla Admin Panel
+\end{itemize}
+
+\subsection{Struktura projektu}
+
+\begin{verbatim}
+app/
+├── data/
+│   ├── database/
+│   ├── model/
+│   ├── remote/ (API calls)
+│   └── repository/
+├── domain/
+│   ├── usecase/
+│   └── entity/
+├── presentation/
+│   ├── ui/
+│   │   ├── login/
+│   │   ├── tasks/
+│   │   ├── task_detail/
+│   │   └── work/
+│   └── viewmodel/
+├── worker/ (sync, background jobs)
+└── util/
+\end{verbatim}
+
+\subsection{Konwencje nazewnictwa}
+
+\begin{itemize}
+    \item Klasy: PascalCase (``TaskDetailFragment'')
+    \item Funkcje: camelCase (``fetchTasks'')
+    \item Stałe: UPPER\_SNAKE\_CASE (``MAX\_RETRIES'')
+    \item XML ids: snake\_case (``btn\_start\_work'')
+\end{itemize}
+
+\subsection{Commits}
+
+\begin{itemize}
+    \item Format: ``[TYPE] Description''
+    \item Typy: feat, fix, refactor, test, docs, chore
+    \item Przykład: ``[feat] Add task filtering by status''
+\end{itemize}
+
+---
+
+% ============================================================================
+\section{Harmonogram wdrożenia}
+% ============================================================================
+
+\subsection{Fazy projektu}
+
+\begin{itemize}
+    \item \textbf{Faza 1 (Sprint 1-2):} Logowanie, autentykacja, zapamiętanie hasła
+    \item \textbf{Faza 2 (Sprint 3-4):} Lista zadań, szczegóły, filtrowanie
+    \item \textbf{Faza 3 (Sprint 5-6):} Praca nad zadaniem, checklist, wstrzymanie
+    \item \textbf{Faza 4 (Sprint 7-8):} Rozliczenie, raportowanie, upload zdjęć
+    \item \textbf{Faza 5 (Sprint 9-10):} Synchronizacja offline-first, WorkManager
+    \item \textbf{Faza 6 (Sprint 11-12):} Testy (QA), optymalizacja, deployment
+\end{itemize}
+
+\subsection{Kamienie milowe}
+
+\begin{itemize}
+    \item Koniec Sprint 4: Alpha (prototyp funkcjonalny)
+    \item Koniec Sprint 8: Beta (pełny feature set)
+    \item Koniec Sprint 12: Release 1.0.0 (produkcja)
+\end{itemize}
+
+---
+
+% ============================================================================
+\section{Podsumowanie}
+% ============================================================================
+
+Niniejsza specyfikacja stanowi pełną dokumentację wymagań funkcjonalnych i niefunkcjonalnych dla aplikacji OutsideJob. Dokument obejmuje:
+
+\begin{itemize}
+    \item 14 głównych wymagań funkcjonalnych (REQ-F)
+    \item 7 wymagań niefunkcjonalnych (NFR)
+    \item 5 kluczowych przypadków użycia
+    \item 6 scenariuszy testowych
+    \item Model danych (ERD) z tabelami SQL
+    \item Architekturę systemu
+    \item Wytyczne UX/UI
+    \item Plan testów i wdrażania
+\end{itemize}
+
+Dokument stanowi fundament dla całego projektu i powinien być zatwierddzony przez stakeholderów przed przejściem do fazy implementacji.
+
+\subsection{Dalsze kroki}
+
+\begin{enumerate}
+    \item Zatwierdzenie specyfikacji przez zespół i klienta
+    \item Przygotowanie mockup'ów UI/UX (Figma)
+    \item Specyfikacja API REST (OpenAPI/Swagger)
+    \item Przygotowanie planu architektonicznego (szczegółowo)
+    \item Konfiguracja środowiska (dev, staging, prod)
+    \item Rozpoczęcie Sprint 1
+\end{enumerate}
+
+\end{document}
